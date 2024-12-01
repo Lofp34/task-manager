@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Empêche le zoom automatique et manuel tout en maintenant l'accessibilité -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestion du Temps Hebdomadaire</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                         Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            /* Fixe la largeur maximale pour les écrans d'iPhone */
+            max-width: 375px;
+            margin: auto;
+        }
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* Inversion du dégradé */
+            background: linear-gradient(to right, #b3e5fc, #e0f7fa);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px; /* Bords arrondis tous azimuts */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Ombre diffuse */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .header .work-time-selector {
+            display: flex;
+            align-items: center;
+        }
+        .header .work-time-selector label {
+            margin-right: 10px;
+            font-size: 1em;
+        }
+        .header .work-time-selector select {
+            padding: 5px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1em;
+        }
+
+        .container {
+            padding: 20px;
+        }
+        /* Styles pour les cartes jour et les cartes supplémentaires */
+        .day-card, .additional-card-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 20px;
+            transition: max-height 0.5s ease, padding 0.5s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        .day-header, .additional-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .day-header h2, .additional-card-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .toggle-icon {
+            transition: transform 0.5s ease;
+        }
+        .closed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        .tasks-container {
+            margin-top: 15px;
+            transition: max-height 0.5s ease;
+            overflow: hidden;
+        }
+        .closed .tasks-container {
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+        }
+        .task-card {
+            background-color: #e0f7fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .task-card.minimized .task-details {
+            display: none;
+        }
+        .task-card:hover {
+            background-color: #b2ebf2;
+        }
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .task-time {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .task-status {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .add-task-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to right, #28a745, #218838); /* Dégradé similaire au header */
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        .add-task-btn:hover {
+            background: linear-gradient(to right, #218838, #19692c);
+        }
+        /* Additional Cards */
+        .additional-cards {
+            margin-top: 20px;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.5); 
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            font-size: 16px; /* Assure une taille de police suffisante */
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            text-align: center;
+        }
+        .close-btn {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .close-btn:hover {
+            color: #000;
+        }
+        .modal input, .modal textarea, .modal select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px; /* Assure une taille de police suffisante */
+        }
+        .modal textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .modal .selectors {
+            display: flex;
+            justify-content: space-between;
+        }
+        .modal .selectors select {
+            width: 48%;
+        }
+        .modal .actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+        .modal .actions button {
+            padding: 8px 16px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .save-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .save-btn:hover {
+            background-color: #218838;
+        }
+        .cancel-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .cancel-btn:hover {
+            background-color: #c82333;
+        }
+        /* Progress Bar Styles */
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: green;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+        .progress-info {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 5px;
+        }
+        /* Checkmark Button */
+        .checkmark-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #28a745;
+            transition: color 0.3s ease;
+        }
+        .checkmark-btn:hover {
+            color: #218838;
+        }
+        /* Timer Styles */
+        .timer {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .timer-display {
+            font-size: 0.9em;
+            color: #555;
+            margin-right: 10px;
+        }
+        .timer-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background-color 0.3s ease;
+        }
+        .timer-btn:hover {
+            background-color: #0069d9;
+        }
+        /* Styles pour la description avec raison */
+        .task-desc {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 5px;
+        }
+        @media (max-width: 600px) {
+            .modal-content {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Gestion de planning</h1>
+        <div class="work-time-selector">
+            <label for="work-time">Temps de travail :</label>
+            <select id="work-time" onchange="updateProgressBars()">
+                <option value="0">0h</option>
+                <option value="1">1h</option>
+                <option value="2">2h</option>
+                <option value="3">3h</option>
+                <option value="4">4h</option>
+                <option value="5">5h</option>
+                <option value="6">6h</option>
+                <option value="7">7h</option>
+                <option value="8" selected>8h</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Carte du Lundi -->
+        <div class="day-card closed" id="lundi-card">
+            <div class="day-header" onclick="toggleCard('lundi-card')">
+                <h2>Lundi</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="lundi-tasks">
+                <!-- Tâches ajoutées apparaîtront ici -->
+            </div>
+            <div class="progress-info" id="lundi-progress-info">
+                Heures programmées : <span id="lundi-hours">0</span>h
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="lundi-bar"></div>
+            </div>
+        </div>
+
+        <!-- Bouton Ajouter une tâche -->
+        <button class="add-task-btn" onclick="openModal()">Ajouter une tâche</button>
+
+        <!-- Espacement entre le bouton et les cartes supplémentaires -->
+        <div style="height: 20px;"></div>
+
+        <!-- Cartes supplémentaires -->
+        <!-- Carte Bien Fait -->
+        <div class="additional-card-container closed" id="well-done-card">
+            <div class="additional-card-header" onclick="toggleCard('well-done-card')">
+                <h2>Bien Fait</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="well-done-tasks">
+                <!-- Tâches Bien Fait apparaîtront ici -->
+            </div>
+        </div>
+        <!-- Carte Ratée -->
+        <div class="additional-card-container closed" id="failed-card">
+            <div class="additional-card-header" onclick="toggleCard('failed-card')">
+                <h2>Ratée</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="failed-tasks">
+                <!-- Tâches Ratée apparaîtront ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour ajouter une tâche -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3>Nouvelle Tâche</h3>
+            <input type="text" id="task-title" placeholder="Titre" required>
+            <textarea id="task-desc" placeholder="Description"></textarea>
+            <div class="selectors">
+                <select id="task-hour">
+                    <option value="1" selected>1 heure</option>
+                    <option value="2">2 heures</option>
+                    <option value="3">3 heures</option>
+                    <option value="4">4 heures</option>
+                </select>
+                <select id="task-minute">
+                    <option value="0" selected>0 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                </select>
+            </div>
+            <select id="task-day">
+                <option value="lundi" selected>Lundi</option>
+                <option value="mardi">Mardi</option>
+                <option value="mercredi">Mercredi</option>
+                <option value="jeudi">Jeudi</option>
+                <option value="vendredi">Vendredi</option>
+                <option value="samedi">Samedi</option>
+                <option value="dimanche">Dimanche</option>
+            </select>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeModal()">Annuler</button>
+                <button class="save-btn" onclick="saveTask()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour modifier une tâche -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h3>Modifier la Tâche</h3>
+            <input type="text" id="edit-task-title" placeholder="Titre" disabled>
+            <textarea id="edit-task-desc" placeholder="Description"></textarea>
+            <div class="selectors">
+                <select id="edit-task-hour">
+                    <option value="1">1 heure</option>
+                    <option value="2">2 heures</option>
+                    <option value="3">3 heures</option>
+                    <option value="4">4 heures</option>
+                </select>
+                <select id="edit-task-minute">
+                    <option value="0">0 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                </select>
+            </div>
+            <select id="edit-task-day">
+                <option value="lundi">Lundi</option>
+                <option value="mardi">Mardi</option>
+                <option value="mercredi">Mercredi</option>
+                <option value="jeudi">Jeudi</option>
+                <option value="vendredi">Vendredi</option>
+                <option value="samedi">Samedi</option>
+                <option value="dimanche">Dimanche</option>
+            </select>
+            <select id="edit-task-status">
+                <option value="En attente">En attente</option>
+                <option value="En cours">En cours</option>
+                <option value="Bien Fait">Bien Fait</option>
+                <option value="Ratée">Ratée</option>
+            </select>
+            <div class="progress-info" id="edit-task-elapsed-info">
+                Temps écoulé : <span id="edit-task-elapsed">00:00:00</span>
+            </div>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeEditModal()">Annuler</button>
+                <button class="save-btn" onclick="updateTask()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour raison de tâche ratée -->
+    <div class="modal" id="reason-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeReasonModal()">&times;</span>
+            <h3>Raison de la Tâche Ratée</h3>
+            <textarea id="reason-text" placeholder="Veuillez entrer la raison de l'échec"></textarea>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeReasonModal()">Annuler</button>
+                <button class="save-btn" onclick="saveReason()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditTask = null;
+        let currentReasonTask = null;
+        let timerIntervals = {}; // Pour gérer les timers de chaque tâche
+
+        // Fonction pour ouvrir la modale d'ajout
+        function openModal() {
+            document.getElementById('task-modal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la modale d'ajout
+        function closeModal() {
+            document.getElementById('task-modal').style.display = 'none';
+            clearModal();
+        }
+
+        // Fonction pour effacer les champs de la modale d'ajout
+        function clearModal() {
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-hour').value = '1';
+            document.getElementById('task-minute').value = '0';
+            document.getElementById('task-day').value = 'lundi';
+        }
+
+        // Fonction pour enregistrer la tâche
+        function saveTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const desc = document.getElementById('task-desc').value.trim();
+            const hour = parseInt(document.getElementById('task-hour').value) || 0;
+            const minute = parseInt(document.getElementById('task-minute').value) || 0;
+            const day = document.getElementById('task-day').value;
+
+            if (title === '') {
+                alert('Veuillez remplir le champ Titre.');
+                return;
+            }
+
+            const task = {
+                id: Date.now(), // Identifiant unique
+                title: title,
+                desc: desc,
+                hour: hour,
+                minute: minute,
+                day: day,
+                status: 'En attente', // Par défaut
+                reason: '',
+                elapsed: 0 // Temps écoulé en secondes
+            };
+
+            addTaskToContainer(task, 'day');
+            saveTasksToLocalStorage();
+            closeModal();
+        }
+
+        // Fonction pour ajouter la tâche au conteneur approprié
+        function addTaskToContainer(task, containerType) {
+            let tasksContainerId = '';
+            if (containerType === 'day') {
+                tasksContainerId = `${task.day}-tasks`;
+            } else if (containerType === 'well-done') {
+                tasksContainerId = 'well-done-tasks';
+            } else if (containerType === 'failed') {
+                tasksContainerId = 'failed-tasks';
+            }
+
+            const tasksContainer = document.getElementById(tasksContainerId);
+
+            const taskCard = document.createElement('div');
+            taskCard.className = 'task-card';
+            if (containerType === 'well-done' || containerType === 'failed') {
+                taskCard.classList.add('minimized');
+            }
+            taskCard.dataset.id = task.id;
+            taskCard.dataset.title = task.title;
+            taskCard.dataset.desc = task.desc;
+            taskCard.dataset.hour = task.hour;
+            taskCard.dataset.minute = task.minute;
+            taskCard.dataset.day = task.day;
+            taskCard.dataset.status = task.status;
+            taskCard.dataset.reason = task.reason;
+            taskCard.dataset.elapsed = task.elapsed;
+
+            const taskTitle = document.createElement('div');
+            taskTitle.className = 'task-title';
+            taskTitle.textContent = task.title;
+
+            // Chronomètre
+            const timer = document.createElement('div');
+            timer.className = 'timer';
+
+            const timerDisplay = document.createElement('div');
+            timerDisplay.className = 'timer-display';
+            timerDisplay.textContent = formatTime(task.elapsed);
+
+            const timerBtn = document.createElement('button');
+            timerBtn.className = 'timer-btn';
+            timerBtn.textContent = 'Start';
+            timerBtn.onclick = (e) => {
+                e.stopPropagation(); // Empêche l'ouverture de la modale d'édition
+                toggleTimer(taskCard, timerBtn, timerDisplay);
+            };
+
+            timer.appendChild(timerDisplay);
+            timer.appendChild(timerBtn);
+
+            // Checkmark Button
+            const checkmarkBtn = document.createElement('button');
+            checkmarkBtn.className = 'checkmark-btn';
+            checkmarkBtn.innerHTML = '✔';
+            checkmarkBtn.title = 'Marquer comme Bien Fait';
+            checkmarkBtn.onclick = (e) => {
+                e.stopPropagation(); // Empêche l'ouverture de la modale d'édition
+                markAsWellDone(taskCard);
+            };
+
+            // Détails de la tâche
+            const taskDetails = document.createElement('div');
+            taskDetails.className = 'task-details';
+
+            const taskTime = document.createElement('div');
+            taskTime.className = 'task-time';
+            taskTime.textContent = `Durée : ${task.hour}h ${task.minute}min`;
+
+            const taskStatus = document.createElement('div');
+            taskStatus.className = 'task-status';
+            taskStatus.textContent = `Statut : ${task.status}`;
+
+            taskDetails.appendChild(taskTime);
+            taskDetails.appendChild(taskStatus);
+
+            taskCard.appendChild(checkmarkBtn);
+            taskCard.appendChild(taskTitle);
+            taskCard.appendChild(timer); // Ajout du chronomètre en dehors de task-details
+            taskCard.appendChild(taskDetails);
+
+            // Ajouter l'événement de clic pour modifier la tâche
+            taskCard.addEventListener('click', function() {
+                openEditModal(taskCard);
+            });
+
+            tasksContainer.appendChild(taskCard);
+        }
+
+        // Fonction pour formater le temps en HH:MM:SS
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Fonction pour basculer le chronomètre
+        function toggleTimer(taskCard, timerBtn, timerDisplay) {
+            const taskId = taskCard.dataset.id;
+            if (timerIntervals[taskId]) {
+                // Arrêter le chronomètre
+                clearInterval(timerIntervals[taskId]);
+                delete timerIntervals[taskId];
+                timerBtn.textContent = 'Start';
+            } else {
+                // Démarrer le chronomètre
+                timerIntervals[taskId] = setInterval(() => {
+                    taskCard.dataset.elapsed = parseInt(taskCard.dataset.elapsed) + 1;
+                    timerDisplay.textContent = formatTime(taskCard.dataset.elapsed);
+                    // Si la modale d'édition est ouverte pour cette tâche, mettre à jour le temps
+                    if (currentEditTask && currentEditTask.dataset.id === taskId) {
+                        document.getElementById('edit-task-elapsed').textContent = formatTime(taskCard.dataset.elapsed);
+                    }
+                }, 1000);
+                timerBtn.textContent = 'Stop';
+            }
+        }
+
+        // Fonction pour marquer une tâche comme Bien Fait
+        function markAsWellDone(taskCard) {
+            const taskId = taskCard.dataset.id;
+            const title = taskCard.dataset.title;
+            const desc = taskCard.dataset.desc;
+            const hour = parseInt(taskCard.dataset.hour) || 0;
+            const minute = parseInt(taskCard.dataset.minute) || 0;
+            const day = taskCard.dataset.day;
+            const status = 'Bien Fait';
+            const reason = taskCard.dataset.reason;
+            const elapsed = parseInt(taskCard.dataset.elapsed) || 0;
+
+            // Arrêter le chronomètre si en cours
+            if (timerIntervals[taskId]) {
+                clearInterval(timerIntervals[taskId]);
+                delete timerIntervals[taskId];
+            }
+
+            // Mettre à jour la tâche
+            const updatedTask = {
+                id: taskId,
+                title: title,
+                desc: desc,
+                hour: hour + Math.floor(elapsed / 3600),
+                minute: minute + Math.floor((elapsed % 3600) / 60),
+                day: day,
+                status: status,
+                reason: reason,
+                elapsed: elapsed
+            };
+
+            // Supprimer la tâche de son conteneur actuel
+            taskCard.parentElement.removeChild(taskCard);
+
+            // Ajouter la tâche mise à jour au conteneur "Bien Fait"
+            addTaskToContainer(updatedTask, 'well-done');
+
+            // Sauvegarder les changements
+            saveTasksToLocalStorage();
+            updateProgress(day);
+        }
+
+        // Fonction pour ouvrir la modale de modification
+        function openEditModal(taskCard) {
+            currentEditTask = taskCard;
+            document.getElementById('edit-task-title').value = taskCard.dataset.title;
+            document.getElementById('edit-task-desc').value = taskCard.dataset.desc;
+            document.getElementById('edit-task-hour').value = taskCard.dataset.hour;
+            document.getElementById('edit-task-minute').value = taskCard.dataset.minute;
+            document.getElementById('edit-task-day').value = taskCard.dataset.day;
+            document.getElementById('edit-task-status').value = taskCard.dataset.status;
+            document.getElementById('edit-task-elapsed').textContent = formatTime(taskCard.dataset.elapsed);
+
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la modale de modification
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+            currentEditTask = null;
+        }
+
+        // Fonction pour sauvegarder la raison de la tâche ratée
+        function saveReason() {
+            const reason = document.getElementById('reason-text').value.trim();
+            if (reason === '') {
+                alert('Veuillez entrer une raison pour la tâche ratée.');
+                return;
+            }
+
+            // Ajouter la raison à la description avec un saut de ligne
+            let newDesc = currentReasonTask.dataset.desc;
+            if (newDesc !== '') {
+                newDesc += `\nLa tâche a été ratée car : ${reason}`;
+            } else {
+                newDesc = `La tâche a été ratée car : ${reason}`;
+            }
+
+            currentReasonTask.dataset.desc = newDesc;
+
+            // Mettre à jour l'affichage de la tâche dans les conteneurs non-jours
+            const containerType = getContainerType(currentReasonTask.parentElement.id);
+            if (containerType !== 'day') {
+                let taskDesc = currentReasonTask.querySelector('.task-desc');
+                if (taskDesc) {
+                    taskDesc.textContent = newDesc;
+                } else {
+                    taskDesc = document.createElement('div');
+                    taskDesc.className = 'task-desc';
+                    taskDesc.textContent = newDesc;
+                    currentReasonTask.querySelector('.task-details').appendChild(taskDesc);
+                }
+            }
+
+            // Fermer la modale de raison
+            closeReasonModal();
+
+            // Déplacer la tâche vers la section appropriée
+            moveTaskToSection(currentReasonTask);
+            saveTasksToLocalStorage();
+        }
+
+        // Fonction pour fermer la modale de raison
+        function closeReasonModal() {
+            document.getElementById('reason-modal').style.display = 'none';
+            currentReasonTask = null;
+        }
+
+        // Fonction pour mettre à jour la tâche après modification
+        function updateTask() {
+            if (!currentEditTask) return;
+
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const hour = parseInt(document.getElementById('edit-task-hour').value) || 0;
+            const minute = parseInt(document.getElementById('edit-task-minute').value) || 0;
+            const day = document.getElementById('edit-task-day').value;
+            const status = document.getElementById('edit-task-status').value;
+
+            // Mettre à jour les données de la tâche
+            currentEditTask.dataset.desc = desc;
+            currentEditTask.dataset.hour = hour;
+            currentEditTask.dataset.minute = minute;
+            currentEditTask.dataset.day = day;
+            currentEditTask.dataset.status = status;
+
+            // Mettre à jour l'affichage de la tâche en fonction du conteneur
+            updateTaskDisplay(currentEditTask);
+
+            // Gérer la raison si la tâche est ratée
+            if (status === 'Ratée') {
+                openReasonModal(currentEditTask);
+            } else {
+                // Supprimer toute raison précédemment ajoutée
+                currentEditTask.dataset.reason = '';
+                const taskDesc = currentEditTask.querySelector('.task-desc');
+                if (taskDesc && taskDesc.textContent.includes('La tâche a été ratée car :')) {
+                    // Retirer la ligne de raison
+                    const lines = taskDesc.textContent.split('\n');
+                    const filteredLines = lines.filter(line => !line.startsWith('La tâche a été ratée car :'));
+                    taskDesc.textContent = filteredLines.join('\n');
+                }
+            }
+
+            // Si le jour ou le statut a changé, déplacer la tâche
+            if (currentEditTask.dataset.day !== day || status === 'Bien Fait' || status === 'Ratée') {
+                moveTaskToSection(currentEditTask);
+            } else {
+                // Mettre à jour les détails affichés
+                updateTaskDisplay(currentEditTask);
+            }
+
+            updateProgress(day);
+            saveTasksToLocalStorage();
+            closeEditModal();
+        }
+
+        // Fonction pour mettre à jour l'affichage de la tâche
+        function updateTaskDisplay(taskCard) {
+            const taskTitle = taskCard.querySelector('.task-title');
+            const taskDetails = taskCard.querySelector('.task-details');
+            const taskTime = taskDetails.querySelector('.task-time');
+            const taskStatus = taskDetails.querySelector('.task-status');
+            const timerDisplay = taskCard.querySelector('.timer-display');
+
+            taskTime.textContent = `Durée : ${taskCard.dataset.hour}h ${taskCard.dataset.minute}min`;
+            taskStatus.textContent = `Statut : ${taskCard.dataset.status}`;
+            timerDisplay.textContent = formatTime(taskCard.dataset.elapsed);
+        }
+
+        // Fonction pour déterminer le type de conteneur
+        function getContainerType(containerId) {
+            if (containerId.endsWith('-tasks')) {
+                if (containerId.startsWith('well-done')) return 'well-done';
+                if (containerId.startsWith('failed')) return 'failed';
+                return 'day';
+            }
+            return 'unknown';
+        }
+
+        // Fonction pour déplacer la tâche vers la section appropriée
+        function moveTaskToSection(taskCard) {
+            const status = taskCard.dataset.status;
+            let targetContainerId = '';
+
+            if (status === 'Bien Fait') {
+                targetContainerId = 'well-done-tasks';
+            } else if (status === 'Ratée') {
+                targetContainerId = 'failed-tasks';
+            } else {
+                // Pour les autres statuts, retourner au conteneur jour
+                const day = taskCard.dataset.day;
+                targetContainerId = `${day}-tasks`;
+            }
+
+            const targetContainerType = getContainerType(targetContainerId);
+            const targetContainer = document.getElementById(targetContainerId);
+
+            // Supprimer la tâche de son conteneur actuel
+            taskCard.parentElement.removeChild(taskCard);
+
+            // Ajouter la tâche au nouveau conteneur
+            addTaskToContainer({
+                id: taskCard.dataset.id,
+                title: taskCard.dataset.title,
+                desc: taskCard.dataset.desc,
+                hour: taskCard.dataset.hour,
+                minute: taskCard.dataset.minute,
+                day: taskCard.dataset.day,
+                status: taskCard.dataset.status,
+                reason: taskCard.dataset.reason,
+                elapsed: parseInt(taskCard.dataset.elapsed) || 0
+            }, targetContainerType);
+
+            // Mettre à jour les barres de progression pour les jours concernés
+            if (targetContainerType === 'day') {
+                updateProgress(taskCard.dataset.day);
+            } else if (targetContainerType === 'well-done') {
+                updateProgress('bien-done');
+            } else if (targetContainerType === 'failed') {
+                updateProgress('ratée');
+            }
+        }
+
+        // Fonction pour basculer l'ouverture/fermeture d'une carte
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.toggle('closed');
+        }
+
+        // Fonction pour mettre à jour les barres de progression
+        function updateProgress(day) {
+            const tasksContainerId = `${day}-tasks`;
+            const dayTasks = document.querySelectorAll(`#${tasksContainerId} .task-card`);
+            let totalMinutes = 0;
+            dayTasks.forEach(task => {
+                totalMinutes += parseInt(task.dataset.hour) * 60 + parseInt(task.dataset.minute);
+            });
+            const totalHours = (totalMinutes / 60).toFixed(2);
+            document.getElementById(`${day}-hours`).textContent = totalHours;
+
+            const workTime = parseInt(document.getElementById('work-time').value);
+            const progressPercent = workTime > 0 ? Math.min((totalHours / workTime) * 100, 100) : 0;
+
+            const progressBar = document.getElementById(`${day}-bar`);
+            progressBar.style.width = `${progressPercent}%`;
+
+            updateProgressBarColor(progressBar, progressPercent);
+        }
+
+        // Fonction pour mettre à jour la couleur de la barre de progression
+        function updateProgressBarColor(bar, percent) {
+            // Utilisation de HSL pour changer la teinte en fonction du pourcentage
+            // Vert (120) -> Rouge (0)
+            const hue = (120 - (120 * percent / 100)).toFixed(0);
+            bar.style.background = `hsl(${hue}, 100%, 50%)`;
+        }
+
+        // Fonction pour mettre à jour toutes les barres de progression
+        function updateProgressBars() {
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                updateProgress(day);
+            });
+        }
+
+        // Fonction pour sauvegarder les tâches dans le localStorage
+        function saveTasksToLocalStorage() {
+            const tasks = [];
+
+            // Récupérer les tâches des jours
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                const dayTasks = document.querySelectorAll(`#${day}-tasks .task-card`);
+                dayTasks.forEach(task => {
+                    tasks.push({
+                        id: task.dataset.id,
+                        title: task.dataset.title,
+                        desc: task.dataset.desc,
+                        hour: task.dataset.hour,
+                        minute: task.dataset.minute,
+                        day: task.dataset.day,
+                        status: task.dataset.status,
+                        reason: task.dataset.reason,
+                        elapsed: task.dataset.elapsed
+                    });
+                });
+            });
+
+            // Récupérer les tâches "Bien Fait"
+            const wellDoneTasks = document.querySelectorAll(`#well-done-tasks .task-card`);
+            wellDoneTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            // Récupérer les tâches "Ratée"
+            const failedTasks = document.querySelectorAll(`#failed-tasks .task-card`);
+            failedTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Fonction pour charger les tâches depuis le localStorage
+        function loadTasksFromLocalStorage() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.forEach(task => {
+                let containerType = 'day';
+                if (task.status === 'Bien Fait') {
+                    containerType = 'well-done';
+                } else if (task.status === 'Ratée') {
+                    containerType = 'failed';
+                }
+                addTaskToContainer(task, containerType);
+            });
+            updateProgressBars();
+        }
+
+        // Fonction pour ouvrir la modale de raison
+        function openReasonModal(taskCard) {
+            currentReasonTask = taskCard;
+            document.getElementById('reason-text').value = '';
+            document.getElementById('reason-modal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la modale de raison
+        function closeReasonModal() {
+            document.getElementById('reason-modal').style.display = 'none';
+            currentReasonTask = null;
+        }
+
+        // Fonction pour sauvegarder la raison de la tâche ratée
+        function saveReason() {
+            const reason = document.getElementById('reason-text').value.trim();
+            if (reason === '') {
+                alert('Veuillez entrer une raison pour la tâche ratée.');
+                return;
+            }
+
+            // Ajouter la raison à la description avec un saut de ligne
+            let newDesc = currentReasonTask.dataset.desc;
+            if (newDesc !== '') {
+                newDesc += `\nLa tâche a été ratée car : ${reason}`;
+            } else {
+                newDesc = `La tâche a été ratée car : ${reason}`;
+            }
+
+            currentReasonTask.dataset.desc = newDesc;
+
+            // Mettre à jour l'affichage de la tâche dans les conteneurs non-jours
+            const containerType = getContainerType(currentReasonTask.parentElement.id);
+            if (containerType !== 'day') {
+                let taskDesc = currentReasonTask.querySelector('.task-desc');
+                if (taskDesc) {
+                    taskDesc.textContent = newDesc;
+                } else {
+                    taskDesc = document.createElement('div');
+                    taskDesc.className = 'task-desc';
+                    taskDesc.textContent = newDesc;
+                    currentReasonTask.querySelector('.task-details').appendChild(taskDesc);
+                }
+            }
+
+            // Fermer la modale de raison
+            closeReasonModal();
+
+            // Déplacer la tâche vers la section appropriée
+            moveTaskToSection(currentReasonTask);
+            saveTasksToLocalStorage();
+        }
+
+        // Fonction pour mettre à jour la tâche après modification
+        function updateTask() {
+            if (!currentEditTask) return;
+
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const hour = parseInt(document.getElementById('edit-task-hour').value) || 0;
+            const minute = parseInt(document.getElementById('edit-task-minute').value) || 0;
+            const day = document.getElementById('edit-task-day').value;
+            const status = document.getElementById('edit-task-status').value;
+
+            // Mettre à jour les données de la tâche
+            currentEditTask.dataset.desc = desc;
+            currentEditTask.dataset.hour = hour;
+            currentEditTask.dataset.minute = minute;
+            currentEditTask.dataset.day = day;
+            currentEditTask.dataset.status = status;
+
+            // Mettre à jour l'affichage de la tâche en fonction du conteneur
+            updateTaskDisplay(currentEditTask);
+
+            // Gérer la raison si la tâche est ratée
+            if (status === 'Ratée') {
+                openReasonModal(currentEditTask);
+            } else {
+                // Supprimer toute raison précédemment ajoutée
+                currentEditTask.dataset.reason = '';
+                const taskDesc = currentEditTask.querySelector('.task-desc');
+                if (taskDesc && taskDesc.textContent.includes('La tâche a été ratée car :')) {
+                    // Retirer la ligne de raison
+                    const lines = taskDesc.textContent.split('\n');
+                    const filteredLines = lines.filter(line => !line.startsWith('La tâche a été ratée car :'));
+                    taskDesc.textContent = filteredLines.join('\n');
+                }
+            }
+
+            // Si le jour ou le statut a changé, déplacer la tâche
+            if (currentEditTask.dataset.day !== day || status === 'Bien Fait' || status === 'Ratée') {
+                moveTaskToSection(currentEditTask);
+            } else {
+                // Mettre à jour les détails affichés
+                updateTaskDisplay(currentEditTask);
+            }
+
+            updateProgress(day);
+            saveTasksToLocalStorage();
+            closeEditModal();
+        }
+
+        // Fonction pour mettre à jour l'affichage de la tâche
+        function updateTaskDisplay(taskCard) {
+            const taskTitle = taskCard.querySelector('.task-title');
+            const taskDetails = taskCard.querySelector('.task-details');
+            const taskTime = taskDetails.querySelector('.task-time');
+            const taskStatus = taskDetails.querySelector('.task-status');
+            const timerDisplay = taskCard.querySelector('.timer-display');
+
+            taskTime.textContent = `Durée : ${taskCard.dataset.hour}h ${taskCard.dataset.minute}min`;
+            taskStatus.textContent = `Statut : ${taskCard.dataset.status}`;
+            timerDisplay.textContent = formatTime(taskCard.dataset.elapsed);
+        }
+
+        // Fonction pour déterminer le type de conteneur
+        function getContainerType(containerId) {
+            if (containerId.endsWith('-tasks')) {
+                if (containerId.startsWith('well-done')) return 'well-done';
+                if (containerId.startsWith('failed')) return 'failed';
+                return 'day';
+            }
+            return 'unknown';
+        }
+
+        // Fonction pour déplacer la tâche vers la section appropriée
+        function moveTaskToSection(taskCard) {
+            const status = taskCard.dataset.status;
+            let targetContainerId = '';
+
+            if (status === 'Bien Fait') {
+                targetContainerId = 'well-done-tasks';
+            } else if (status === 'Ratée') {
+                targetContainerId = 'failed-tasks';
+            } else {
+                // Pour les autres statuts, retourner au conteneur jour
+                const day = taskCard.dataset.day;
+                targetContainerId = `${day}-tasks`;
+            }
+
+            const targetContainerType = getContainerType(targetContainerId);
+            const targetContainer = document.getElementById(targetContainerId);
+
+            // Supprimer la tâche de son conteneur actuel
+            taskCard.parentElement.removeChild(taskCard);
+
+            // Ajouter la tâche au nouveau conteneur
+            addTaskToContainer({
+                id: taskCard.dataset.id,
+                title: taskCard.dataset.title,
+                desc: taskCard.dataset.desc,
+                hour: taskCard.dataset.hour,
+                minute: taskCard.dataset.minute,
+                day: taskCard.dataset.day,
+                status: taskCard.dataset.status,
+                reason: taskCard.dataset.reason,
+                elapsed: parseInt(taskCard.dataset.elapsed) || 0
+            }, targetContainerType);
+
+            // Mettre à jour les barres de progression pour les jours concernés
+            if (targetContainerType === 'day') {
+                updateProgress(taskCard.dataset.day);
+            } else if (targetContainerType === 'well-done') {
+                updateProgress('bien-done');
+            } else if (targetContainerType === 'failed') {
+                updateProgress('ratée');
+            }
+        }
+
+        // Fonction pour basculer l'ouverture/fermeture d'une carte
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.toggle('closed');
+        }
+
+        // Fonction pour mettre à jour les barres de progression
+        function updateProgress(day) {
+            const tasksContainerId = `${day}-tasks`;
+            const dayTasks = document.querySelectorAll(`#${tasksContainerId} .task-card`);
+            let totalMinutes = 0;
+            dayTasks.forEach(task => {
+                totalMinutes += parseInt(task.dataset.hour) * 60 + parseInt(task.dataset.minute);
+            });
+            const totalHours = (totalMinutes / 60).toFixed(2);
+            document.getElementById(`${day}-hours`).textContent = totalHours;
+
+            const workTime = parseInt(document.getElementById('work-time').value);
+            const progressPercent = workTime > 0 ? Math.min((totalHours / workTime) * 100, 100) : 0;
+
+            const progressBar = document.getElementById(`${day}-bar`);
+            progressBar.style.width = `${progressPercent}%`;
+
+            updateProgressBarColor(progressBar, progressPercent);
+        }
+
+        // Fonction pour mettre à jour la couleur de la barre de progression
+        function updateProgressBarColor(bar, percent) {
+            // Utilisation de HSL pour changer la teinte en fonction du pourcentage
+            // Vert (120) -> Rouge (0)
+            const hue = (120 - (120 * percent / 100)).toFixed(0);
+            bar.style.background = `hsl(${hue}, 100%, 50%)`;
+        }
+
+        // Fonction pour mettre à jour toutes les barres de progression
+        function updateProgressBars() {
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                updateProgress(day);
+            });
+        }
+
+        // Fonction pour sauvegarder les tâches dans le localStorage
+        function saveTasksToLocalStorage() {
+            const tasks = [];
+
+            // Récupérer les tâches des jours
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                const dayTasks = document.querySelectorAll(`#${day}-tasks .task-card`);
+                dayTasks.forEach(task => {
+                    tasks.push({
+                        id: task.dataset.id,
+                        title: task.dataset.title,
+                        desc: task.dataset.desc,
+                        hour: task.dataset.hour,
+                        minute: task.dataset.minute,
+                        day: task.dataset.day,
+                        status: task.dataset.status,
+                        reason: task.dataset.reason,
+                        elapsed: task.dataset.elapsed
+                    });
+                });
+            });
+
+            // Récupérer les tâches "Bien Fait"
+            const wellDoneTasks = document.querySelectorAll(`#well-done-tasks .task-card`);
+            wellDoneTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            // Récupérer les tâches "Ratée"
+            const failedTasks = document.querySelectorAll(`#failed-tasks .task-card`);
+            failedTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Fonction pour charger les tâches depuis le localStorage
+        function loadTasksFromLocalStorage() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.forEach(task => {
+                let containerType = 'day';
+                if (task.status === 'Bien Fait') {
+                    containerType = 'well-done';
+                } else if (task.status === 'Ratée') {
+                    containerType = 'failed';
+                }
+                addTaskToContainer(task, containerType);
+            });
+            updateProgressBars();
+        }
+
+        // Fonction pour ouvrir la modale de raison
+        function openReasonModal(taskCard) {
+            currentReasonTask = taskCard;
+            document.getElementById('reason-text').value = '';
+            document.getElementById('reason-modal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la modale de raison
+        function closeReasonModal() {
+            document.getElementById('reason-modal').style.display = 'none';
+            currentReasonTask = null;
+        }
+
+        // Fonction pour sauvegarder la raison de la tâche ratée
+        function saveReason() {
+            const reason = document.getElementById('reason-text').value.trim();
+            if (reason === '') {
+                alert('Veuillez entrer une raison pour la tâche ratée.');
+                return;
+            }
+
+            // Ajouter la raison à la description avec un saut de ligne
+            let newDesc = currentReasonTask.dataset.desc;
+            if (newDesc !== '') {
+                newDesc += `\nLa tâche a été ratée car : ${reason}`;
+            } else {
+                newDesc = `La tâche a été ratée car : ${reason}`;
+            }
+
+            currentReasonTask.dataset.desc = newDesc;
+
+            // Mettre à jour l'affichage de la tâche dans les conteneurs non-jours
+            const containerType = getContainerType(currentReasonTask.parentElement.id);
+            if (containerType !== 'day') {
+                let taskDesc = currentReasonTask.querySelector('.task-desc');
+                if (taskDesc) {
+                    taskDesc.textContent = newDesc;
+                } else {
+                    taskDesc = document.createElement('div');
+                    taskDesc.className = 'task-desc';
+                    taskDesc.textContent = newDesc;
+                    currentReasonTask.querySelector('.task-details').appendChild(taskDesc);
+                }
+            }
+
+            // Fermer la modale de raison
+            closeReasonModal();
+
+            // Déplacer la tâche vers la section appropriée
+            moveTaskToSection(currentReasonTask);
+            saveTasksToLocalStorage();
+        }
+
+        // Fonction pour mettre à jour la tâche après modification
+        function updateTask() {
+            if (!currentEditTask) return;
+
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const hour = parseInt(document.getElementById('edit-task-hour').value) || 0;
+            const minute = parseInt(document.getElementById('edit-task-minute').value) || 0;
+            const day = document.getElementById('edit-task-day').value;
+            const status = document.getElementById('edit-task-status').value;
+
+            // Mettre à jour les données de la tâche
+            currentEditTask.dataset.desc = desc;
+            currentEditTask.dataset.hour = hour;
+            currentEditTask.dataset.minute = minute;
+            currentEditTask.dataset.day = day;
+            currentEditTask.dataset.status = status;
+
+            // Mettre à jour l'affichage de la tâche en fonction du conteneur
+            updateTaskDisplay(currentEditTask);
+
+            // Gérer la raison si la tâche est ratée
+            if (status === 'Ratée') {
+                openReasonModal(currentEditTask);
+            } else {
+                // Supprimer toute raison précédemment ajoutée
+                currentEditTask.dataset.reason = '';
+                const taskDesc = currentEditTask.querySelector('.task-desc');
+                if (taskDesc && taskDesc.textContent.includes('La tâche a été ratée car :')) {
+                    // Retirer la ligne de raison
+                    const lines = taskDesc.textContent.split('\n');
+                    const filteredLines = lines.filter(line => !line.startsWith('La tâche a été ratée car :'));
+                    taskDesc.textContent = filteredLines.join('\n');
+                }
+            }
+
+            // Si le jour ou le statut a changé, déplacer la tâche
+            if (currentEditTask.dataset.day !== day || status === 'Bien Fait' || status === 'Ratée') {
+                moveTaskToSection(currentEditTask);
+            } else {
+                // Mettre à jour les détails affichés
+                updateTaskDisplay(currentEditTask);
+            }
+
+            updateProgress(day);
+            saveTasksToLocalStorage();
+            closeEditModal();
+        }
+
+        // Fonction pour mettre à jour l'affichage de la tâche
+        function updateTaskDisplay(taskCard) {
+            const taskTitle = taskCard.querySelector('.task-title');
+            const taskDetails = taskCard.querySelector('.task-details');
+            const taskTime = taskDetails.querySelector('.task-time');
+            const taskStatus = taskDetails.querySelector('.task-status');
+            const timerDisplay = taskCard.querySelector('.timer-display');
+
+            taskTime.textContent = `Durée : ${taskCard.dataset.hour}h ${taskCard.dataset.minute}min`;
+            taskStatus.textContent = `Statut : ${taskCard.dataset.status}`;
+            timerDisplay.textContent = formatTime(taskCard.dataset.elapsed);
+        }
+
+        // Fonction pour déterminer le type de conteneur
+        function getContainerType(containerId) {
+            if (containerId.endsWith('-tasks')) {
+                if (containerId.startsWith('well-done')) return 'well-done';
+                if (containerId.startsWith('failed')) return 'failed';
+                return 'day';
+            }
+            return 'unknown';
+        }
+
+        // Fonction pour déplacer la tâche vers la section appropriée
+        function moveTaskToSection(taskCard) {
+            const status = taskCard.dataset.status;
+            let targetContainerId = '';
+
+            if (status === 'Bien Fait') {
+                targetContainerId = 'well-done-tasks';
+            } else if (status === 'Ratée') {
+                targetContainerId = 'failed-tasks';
+            } else {
+                // Pour les autres statuts, retourner au conteneur jour
+                const day = taskCard.dataset.day;
+                targetContainerId = `${day}-tasks`;
+            }
+
+            const targetContainerType = getContainerType(targetContainerId);
+            const targetContainer = document.getElementById(targetContainerId);
+
+            // Supprimer la tâche de son conteneur actuel
+            taskCard.parentElement.removeChild(taskCard);
+
+            // Ajouter la tâche au nouveau conteneur
+            addTaskToContainer({
+                id: taskCard.dataset.id,
+                title: taskCard.dataset.title,
+                desc: taskCard.dataset.desc,
+                hour: taskCard.dataset.hour,
+                minute: taskCard.dataset.minute,
+                day: taskCard.dataset.day,
+                status: taskCard.dataset.status,
+                reason: taskCard.dataset.reason,
+                elapsed: parseInt(taskCard.dataset.elapsed) || 0
+            }, targetContainerType);
+
+            // Mettre à jour les barres de progression pour les jours concernés
+            if (targetContainerType === 'day') {
+                updateProgress(taskCard.dataset.day);
+            } else if (targetContainerType === 'well-done') {
+                updateProgress('bien-done');
+            } else if (targetContainerType === 'failed') {
+                updateProgress('ratée');
+            }
+        }
+
+        // Fonction pour basculer l'ouverture/fermeture d'une carte
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.toggle('closed');
+        }
+
+        // Fonction pour mettre à jour les barres de progression
+        function updateProgress(day) {
+            const tasksContainerId = `${day}-tasks`;
+            const dayTasks = document.querySelectorAll(`#${tasksContainerId} .task-card`);
+            let totalMinutes = 0;
+            dayTasks.forEach(task => {
+                totalMinutes += parseInt(task.dataset.hour) * 60 + parseInt(task.dataset.minute);
+            });
+            const totalHours = (totalMinutes / 60).toFixed(2);
+            document.getElementById(`${day}-hours`).textContent = totalHours;
+
+            const workTime = parseInt(document.getElementById('work-time').value);
+            const progressPercent = workTime > 0 ? Math.min((totalHours / workTime) * 100, 100) : 0;
+
+            const progressBar = document.getElementById(`${day}-bar`);
+            progressBar.style.width = `${progressPercent}%`;
+
+            updateProgressBarColor(progressBar, progressPercent);
+        }
+
+        // Fonction pour mettre à jour la couleur de la barre de progression
+        function updateProgressBarColor(bar, percent) {
+            // Utilisation de HSL pour changer la teinte en fonction du pourcentage
+            // Vert (120) -> Rouge (0)
+            const hue = (120 - (120 * percent / 100)).toFixed(0);
+            bar.style.background = `hsl(${hue}, 100%, 50%)`;
+        }
+
+        // Fonction pour mettre à jour toutes les barres de progression
+        function updateProgressBars() {
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                updateProgress(day);
+            });
+        }
+
+        // Fonction pour sauvegarder les tâches dans le localStorage
+        function saveTasksToLocalStorage() {
+            const tasks = [];
+
+            // Récupérer les tâches des jours
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                const dayTasks = document.querySelectorAll(`#${day}-tasks .task-card`);
+                dayTasks.forEach(task => {
+                    tasks.push({
+                        id: task.dataset.id,
+                        title: task.dataset.title,
+                        desc: task.dataset.desc,
+                        hour: task.dataset.hour,
+                        minute: task.dataset.minute,
+                        day: task.dataset.day,
+                        status: task.dataset.status,
+                        reason: task.dataset.reason,
+                        elapsed: task.dataset.elapsed
+                    });
+                });
+            });
+
+            // Récupérer les tâches "Bien Fait"
+            const wellDoneTasks = document.querySelectorAll(`#well-done-tasks .task-card`);
+            wellDoneTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            // Récupérer les tâches "Ratée"
+            const failedTasks = document.querySelectorAll(`#failed-tasks .task-card`);
+            failedTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Fonction pour charger les tâches depuis le localStorage
+        function loadTasksFromLocalStorage() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.forEach(task => {
+                let containerType = 'day';
+                if (task.status === 'Bien Fait') {
+                    containerType = 'well-done';
+                } else if (task.status === 'Ratée') {
+                    containerType = 'failed';
+                }
+                addTaskToContainer(task, containerType);
+            });
+            updateProgressBars();
+        }
+
+        // Fonction pour ouvrir la modale de raison
+        function openReasonModal(taskCard) {
+            currentReasonTask = taskCard;
+            document.getElementById('reason-text').value = '';
+            document.getElementById('reason-modal').style.display = 'flex';
+        }
+
+        // Fonction pour fermer la modale de raison
+        function closeReasonModal() {
+            document.getElementById('reason-modal').style.display = 'none';
+            currentReasonTask = null;
+        }
+
+        // Fonction pour sauvegarder la raison de la tâche ratée
+        function saveReason() {
+            const reason = document.getElementById('reason-text').value.trim();
+            if (reason === '') {
+                alert('Veuillez entrer une raison pour la tâche ratée.');
+                return;
+            }
+
+            // Ajouter la raison à la description avec un saut de ligne
+            let newDesc = currentReasonTask.dataset.desc;
+            if (newDesc !== '') {
+                newDesc += `\nLa tâche a été ratée car : ${reason}`;
+            } else {
+                newDesc = `La tâche a été ratée car : ${reason}`;
+            }
+
+            currentReasonTask.dataset.desc = newDesc;
+
+            // Mettre à jour l'affichage de la tâche dans les conteneurs non-jours
+            const containerType = getContainerType(currentReasonTask.parentElement.id);
+            if (containerType !== 'day') {
+                let taskDesc = currentReasonTask.querySelector('.task-desc');
+                if (taskDesc) {
+                    taskDesc.textContent = newDesc;
+                } else {
+                    taskDesc = document.createElement('div');
+                    taskDesc.className = 'task-desc';
+                    taskDesc.textContent = newDesc;
+                    currentReasonTask.querySelector('.task-details').appendChild(taskDesc);
+                }
+            }
+
+            // Fermer la modale de raison
+            closeReasonModal();
+
+            // Déplacer la tâche vers la section appropriée
+            moveTaskToSection(currentReasonTask);
+            saveTasksToLocalStorage();
+        }
+
+        // Fonction pour mettre à jour la tâche après modification
+        function updateTask() {
+            if (!currentEditTask) return;
+
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const hour = parseInt(document.getElementById('edit-task-hour').value) || 0;
+            const minute = parseInt(document.getElementById('edit-task-minute').value) || 0;
+            const day = document.getElementById('edit-task-day').value;
+            const status = document.getElementById('edit-task-status').value;
+
+            // Mettre à jour les données de la tâche
+            currentEditTask.dataset.desc = desc;
+            currentEditTask.dataset.hour = hour;
+            currentEditTask.dataset.minute = minute;
+            currentEditTask.dataset.day = day;
+            currentEditTask.dataset.status = status;
+
+            // Mettre à jour l'affichage de la tâche en fonction du conteneur
+            updateTaskDisplay(currentEditTask);
+
+            // Gérer la raison si la tâche est ratée
+            if (status === 'Ratée') {
+                openReasonModal(currentEditTask);
+            } else {
+                // Supprimer toute raison précédemment ajoutée
+                currentEditTask.dataset.reason = '';
+                const taskDesc = currentEditTask.querySelector('.task-desc');
+                if (taskDesc && taskDesc.textContent.includes('La tâche a été ratée car :')) {
+                    // Retirer la ligne de raison
+                    const lines = taskDesc.textContent.split('\n');
+                    const filteredLines = lines.filter(line => !line.startsWith('La tâche a été ratée car :'));
+                    taskDesc.textContent = filteredLines.join('\n');
+                }
+            }
+
+            // Si le jour ou le statut a changé, déplacer la tâche
+            if (currentEditTask.dataset.day !== day || status === 'Bien Fait' || status === 'Ratée') {
+                moveTaskToSection(currentEditTask);
+            } else {
+                // Mettre à jour les détails affichés
+                updateTaskDisplay(currentEditTask);
+            }
+
+            updateProgress(day);
+            saveTasksToLocalStorage();
+            closeEditModal();
+        }
+
+        // Fonction pour mettre à jour l'affichage de la tâche
+        function updateTaskDisplay(taskCard) {
+            const taskTitle = taskCard.querySelector('.task-title');
+            const taskDetails = taskCard.querySelector('.task-details');
+            const taskTime = taskDetails.querySelector('.task-time');
+            const taskStatus = taskDetails.querySelector('.task-status');
+            const timerDisplay = taskCard.querySelector('.timer-display');
+
+            taskTime.textContent = `Durée : ${taskCard.dataset.hour}h ${taskCard.dataset.minute}min`;
+            taskStatus.textContent = `Statut : ${taskCard.dataset.status}`;
+            timerDisplay.textContent = formatTime(taskCard.dataset.elapsed);
+        }
+
+        // Fonction pour déterminer le type de conteneur
+        function getContainerType(containerId) {
+            if (containerId.endsWith('-tasks')) {
+                if (containerId.startsWith('well-done')) return 'well-done';
+                if (containerId.startsWith('failed')) return 'failed';
+                return 'day';
+            }
+            return 'unknown';
+        }
+
+        // Fonction pour déplacer la tâche vers la section appropriée
+        function moveTaskToSection(taskCard) {
+            const status = taskCard.dataset.status;
+            let targetContainerId = '';
+
+            if (status === 'Bien Fait') {
+                targetContainerId = 'well-done-tasks';
+            } else if (status === 'Ratée') {
+                targetContainerId = 'failed-tasks';
+            } else {
+                // Pour les autres statuts, retourner au conteneur jour
+                const day = taskCard.dataset.day;
+                targetContainerId = `${day}-tasks`;
+            }
+
+            const targetContainerType = getContainerType(targetContainerId);
+            const targetContainer = document.getElementById(targetContainerId);
+
+            // Supprimer la tâche de son conteneur actuel
+            taskCard.parentElement.removeChild(taskCard);
+
+            // Ajouter la tâche au nouveau conteneur
+            addTaskToContainer({
+                id: taskCard.dataset.id,
+                title: taskCard.dataset.title,
+                desc: taskCard.dataset.desc,
+                hour: taskCard.dataset.hour,
+                minute: taskCard.dataset.minute,
+                day: taskCard.dataset.day,
+                status: taskCard.dataset.status,
+                reason: taskCard.dataset.reason,
+                elapsed: parseInt(taskCard.dataset.elapsed) || 0
+            }, targetContainerType);
+
+            // Mettre à jour les barres de progression pour les jours concernés
+            if (targetContainerType === 'day') {
+                updateProgress(taskCard.dataset.day);
+            } else if (targetContainerType === 'well-done') {
+                updateProgress('bien-done');
+            } else if (targetContainerType === 'failed') {
+                updateProgress('ratée');
+            }
+        }
+
+        // Fonction pour basculer l'ouverture/fermeture d'une carte
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.toggle('closed');
+        }
+
+        // Fonction pour mettre à jour les barres de progression
+        function updateProgress(day) {
+            const tasksContainerId = `${day}-tasks`;
+            const dayTasks = document.querySelectorAll(`#${tasksContainerId} .task-card`);
+            let totalMinutes = 0;
+            dayTasks.forEach(task => {
+                totalMinutes += parseInt(task.dataset.hour) * 60 + parseInt(task.dataset.minute);
+            });
+            const totalHours = (totalMinutes / 60).toFixed(2);
+            document.getElementById(`${day}-hours`).textContent = totalHours;
+
+            const workTime = parseInt(document.getElementById('work-time').value);
+            const progressPercent = workTime > 0 ? Math.min((totalHours / workTime) * 100, 100) : 0;
+
+            const progressBar = document.getElementById(`${day}-bar`);
+            progressBar.style.width = `${progressPercent}%`;
+
+            updateProgressBarColor(progressBar, progressPercent);
+        }
+
+        // Fonction pour mettre à jour la couleur de la barre de progression
+        function updateProgressBarColor(bar, percent) {
+            // Utilisation de HSL pour changer la teinte en fonction du pourcentage
+            // Vert (120) -> Rouge (0)
+            const hue = (120 - (120 * percent / 100)).toFixed(0);
+            bar.style.background = `hsl(${hue}, 100%, 50%)`;
+        }
+
+        // Fonction pour mettre à jour toutes les barres de progression
+        function updateProgressBars() {
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                updateProgress(day);
+            });
+        }
+
+        // Fonction pour sauvegarder les tâches dans le localStorage
+        function saveTasksToLocalStorage() {
+            const tasks = [];
+
+            // Récupérer les tâches des jours
+            const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+            days.forEach(day => {
+                const dayTasks = document.querySelectorAll(`#${day}-tasks .task-card`);
+                dayTasks.forEach(task => {
+                    tasks.push({
+                        id: task.dataset.id,
+                        title: task.dataset.title,
+                        desc: task.dataset.desc,
+                        hour: task.dataset.hour,
+                        minute: task.dataset.minute,
+                        day: task.dataset.day,
+                        status: task.dataset.status,
+                        reason: task.dataset.reason,
+                        elapsed: task.dataset.elapsed
+                    });
+                });
+            });
+
+            // Récupérer les tâches "Bien Fait"
+            const wellDoneTasks = document.querySelectorAll(`#well-done-tasks .task-card`);
+            wellDoneTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            // Récupérer les tâches "Ratée"
+            const failedTasks = document.querySelectorAll(`#failed-tasks .task-card`);
+            failedTasks.forEach(task => {
+                tasks.push({
+                    id: task.dataset.id,
+                    title: task.dataset.title,
+                    desc: task.dataset.desc,
+                    hour: task.dataset.hour,
+                    minute: task.dataset.minute,
+                    day: task.dataset.day,
+                    status: task.dataset.status,
+                    reason: task.dataset.reason,
+                    elapsed: task.dataset.elapsed
+                });
+            });
+
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Fonction pour charger les tâches depuis le localStorage
+        function loadTasksFromLocalStorage() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.forEach(task => {
+                let containerType = 'day';
+                if (task.status === 'Bien Fait') {
+                    containerType = 'well-done';
+                } else if (task.status === 'Ratée') {
+                    containerType = 'failed';
+                }
+                addTaskToContainer(task, containerType);
+            });
+            updateProgressBars();
+        }
+
+        // Fonction pour fermer les modales si l'utilisateur clique en dehors de celles-ci
+        window.onclick = function(event) {
+            const modals = ['task-modal', 'edit-modal', 'reason-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target == modal) {
+                    if (modalId === 'task-modal') {
+                        closeModal();
+                    } else if (modalId === 'edit-modal') {
+                        closeEditModal();
+                    } else if (modalId === 'reason-modal') {
+                        closeReasonModal();
+                    }
+                }
+            });
+        }
+
+        // Charger les tâches dès que le contenu est chargé
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasksFromLocalStorage();
+        });
+    </script>
+</body>
+</html>

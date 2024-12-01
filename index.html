@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Empêche le zoom automatique et manuel tout en maintenant l'accessibilité -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestion du Temps Hebdomadaire</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Gestion de planning</h1>
+        <div class="work-time-selector">
+            <label for="work-time">Temps de travail :</label>
+            <select id="work-time" onchange="updateProgressBars()">
+                <option value="0">0h</option>
+                <option value="1">1h</option>
+                <option value="2">2h</option>
+                <option value="3">3h</option>
+                <option value="4">4h</option>
+                <option value="5">5h</option>
+                <option value="6">6h</option>
+                <option value="7">7h</option>
+                <option value="8" selected>8h</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Carte du Lundi -->
+        <div class="day-card closed" id="lundi-card">
+            <div class="day-header" onclick="toggleCard('lundi-card')">
+                <h2>Lundi</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="lundi-tasks">
+                <!-- Tâches ajoutées apparaîtront ici -->
+            </div>
+            <div class="progress-info" id="lundi-progress-info">
+                Heures programmées : <span id="lundi-hours">0</span>h
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="lundi-bar"></div>
+            </div>
+        </div>
+
+        <!-- Bouton Ajouter une tâche -->
+        <button class="add-task-btn" onclick="openModal()">Ajouter une tâche</button>
+
+        <!-- Espacement entre le bouton et les cartes supplémentaires -->
+        <div style="height: 20px;"></div>
+
+        <!-- Cartes supplémentaires -->
+        <!-- Carte Bien Fait -->
+        <div class="additional-card-container closed" id="well-done-card">
+            <div class="additional-card-header" onclick="toggleCard('well-done-card')">
+                <h2>Bien Fait</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="well-done-tasks">
+                <!-- Tâches Bien Fait apparaîtront ici -->
+            </div>
+        </div>
+        <!-- Carte Ratée -->
+        <div class="additional-card-container closed" id="failed-card">
+            <div class="additional-card-header" onclick="toggleCard('failed-card')">
+                <h2>Ratée</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="tasks-container" id="failed-tasks">
+                <!-- Tâches Ratée apparaîtront ici -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour ajouter une tâche -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3>Nouvelle Tâche</h3>
+            <input type="text" id="task-title" placeholder="Titre" required>
+            <textarea id="task-desc" placeholder="Description"></textarea>
+            <div class="selectors">
+                <select id="task-hour">
+                    <option value="1" selected>1 heure</option>
+                    <option value="2">2 heures</option>
+                    <option value="3">3 heures</option>
+                    <option value="4">4 heures</option>
+                </select>
+                <select id="task-minute">
+                    <option value="0" selected>0 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                </select>
+            </div>
+            <select id="task-day">
+                <option value="lundi" selected>Lundi</option>
+                <option value="mardi">Mardi</option>
+                <option value="mercredi">Mercredi</option>
+                <option value="jeudi">Jeudi</option>
+                <option value="vendredi">Vendredi</option>
+                <option value="samedi">Samedi</option>
+                <option value="dimanche">Dimanche</option>
+            </select>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeModal()">Annuler</button>
+                <button class="save-btn" onclick="saveTask()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour modifier une tâche -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h3>Modifier la Tâche</h3>
+            <input type="text" id="edit-task-title" placeholder="Titre" disabled>
+            <textarea id="edit-task-desc" placeholder="Description"></textarea>
+            <div class="selectors">
+                <select id="edit-task-hour">
+                    <option value="1">1 heure</option>
+                    <option value="2">2 heures</option>
+                    <option value="3">3 heures</option>
+                    <option value="4">4 heures</option>
+                </select>
+                <select id="edit-task-minute">
+                    <option value="0">0 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                </select>
+            </div>
+            <select id="edit-task-day">
+                <option value="lundi">Lundi</option>
+                <option value="mardi">Mardi</option>
+                <option value="mercredi">Mercredi</option>
+                <option value="jeudi">Jeudi</option>
+                <option value="vendredi">Vendredi</option>
+                <option value="samedi">Samedi</option>
+                <option value="dimanche">Dimanche</option>
+            </select>
+            <select id="edit-task-status">
+                <option value="En attente">En attente</option>
+                <option value="En cours">En cours</option>
+                <option value="Bien Fait">Bien Fait</option>
+                <option value="Ratée">Ratée</option>
+            </select>
+            <div class="progress-info" id="edit-task-elapsed-info">
+                Temps écoulé : <span id="edit-task-elapsed">00:00:00</span>
+            </div>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeEditModal()">Annuler</button>
+                <button class="save-btn" onclick="updateTask()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour raison de tâche ratée -->
+    <div class="modal" id="reason-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeReasonModal()">&times;</span>
+            <h3>Raison de la Tâche Ratée</h3>
+            <textarea id="reason-text" placeholder="Veuillez entrer la raison de l'échec"></textarea>
+            <div class="actions">
+                <button class="cancel-btn" onclick="closeReasonModal()">Annuler</button>
+                <button class="save-btn" onclick="saveReason()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

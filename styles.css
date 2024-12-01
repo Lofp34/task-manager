@@ -1,0 +1,323 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                 Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    /* Fixe la largeur maximale pour les écrans d'iPhone */
+    max-width: 375px;
+    margin: auto;
+}
+/* Styles pour le bouton de suppression */
+.delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+}
+
+/* Positionnement relatif pour les cartes de tâches */
+.task-card {
+    position: relative;
+    /* Autres styles existants */
+}
+/* Header Styles */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Inversion du dégradé */
+    background: linear-gradient(to right, #b3e5fc, #e0f7fa);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 15px; /* Bords arrondis tous azimuts */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Ombre diffuse */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.header h1 {
+    margin: 0;
+    font-size: 1.2em;
+}
+.header .work-time-selector {
+    display: flex;
+    align-items: center;
+}
+.header .work-time-selector label {
+    margin-right: 10px;
+    font-size: 1em;
+}
+.header .work-time-selector select {
+    padding: 5px;
+    border-radius: 5px;
+    border: none;
+    font-size: 1em;
+}
+
+.container {
+    padding: 20px;
+}
+/* Styles pour les cartes jour et les cartes supplémentaires */
+.day-card, .additional-card-container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 15px;
+    margin-bottom: 20px;
+    transition: max-height 0.5s ease, padding 0.5s ease;
+    overflow: hidden;
+    position: relative;
+}
+.day-header, .additional-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.day-header h2, .additional-card-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+.toggle-icon {
+    transition: transform 0.5s ease;
+}
+.closed .toggle-icon {
+    transform: rotate(-90deg);
+}
+.tasks-container {
+    margin-top: 15px;
+    transition: max-height 0.5s ease;
+    overflow: hidden;
+}
+.closed .tasks-container {
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+}
+.task-card {
+    background-color: #e0f7fa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.task-card.minimized .task-details {
+    display: none;
+}
+.task-card:hover {
+    background-color: #b2ebf2;
+}
+.task-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.task-time {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 5px;
+}
+.task-status {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 5px;
+}
+.add-task-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to right, #28a745, #218838); /* Dégradé similaire au header */
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: background 0.3s ease;
+    width: 100%;
+}
+.add-task-btn:hover {
+    background: linear-gradient(to right, #218838, #19692c);
+}
+/* Additional Cards */
+.additional-cards {
+    margin-top: 20px;
+}
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.5); 
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    font-size: 16px; /* Assure une taille de police suffisante */
+}
+.modal-content h3 {
+    margin-top: 0;
+    text-align: center;
+}
+.close-btn {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    font-size: 1.2em;
+    cursor: pointer;
+    color: #aaa;
+}
+.close-btn:hover {
+    color: #000;
+}
+.modal input, .modal textarea, .modal select {
+    width: 100%;
+    padding: 8px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px; /* Assure une taille de police suffisante */
+}
+.modal textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+.modal .selectors {
+    display: flex;
+    justify-content: space-between;
+}
+.modal .selectors select {
+    width: 48%;
+}
+.modal .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 15px;
+}
+.modal .actions button {
+    padding: 8px 16px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+.save-btn {
+    background-color: #28a745;
+    color: white;
+}
+.save-btn:hover {
+    background-color: #218838;
+}
+.cancel-btn {
+    background-color: #dc3545;
+    color: white;
+}
+.cancel-btn:hover {
+    background-color: #c82333;
+}
+/* Progress Bar Styles */
+.progress-bar-container {
+    width: 100%;
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: green;
+    transition: width 0.5s ease, background-color 0.5s ease;
+}
+.progress-info {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 5px;
+}
+/* Checkmark Button */
+.checkmark-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #28a745;
+    transition: color 0.3s ease;
+}
+.checkmark-btn:hover {
+    color: #218838;
+}
+/* Timer Styles */
+.timer {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+.timer-display {
+    font-size: 0.9em;
+    color: #555;
+    margin-right: 10px;
+}
+.timer-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.3s ease;
+}
+.timer-btn:hover {
+    background-color: #0069d9;
+}
+/* Styles pour la description avec raison */
+.task-desc {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 5px;
+}
+@media (max-width: 600px) {
+    .modal-content {
+        width: 95%;
+    }
+}
